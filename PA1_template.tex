@@ -1,0 +1,231 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+]{article}
+\usepackage{lmodern}
+\usepackage{amssymb,amsmath}
+\usepackage{ifxetex,ifluatex}
+\ifnum 0\ifxetex 1\fi\ifluatex 1\fi=0 % if pdftex
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math}
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\hypersetup{
+  pdftitle={Reproducible Research: Peer Assessment 1},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+\urlstyle{same} % disable monospaced font for URLs
+\usepackage[margin=1in]{geometry}
+\usepackage{graphicx,grffile}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+
+\title{Reproducible Research: Peer Assessment 1}
+\author{}
+\date{\vspace{-2.5em}}
+
+\begin{document}
+\maketitle
+
+\hypertarget{loading-and-preprocessing-the-data}{%
+\subsection{Loading and preprocessing the
+data}\label{loading-and-preprocessing-the-data}}
+
+\begin{verbatim}
+activity <- read.csv("activity/activity.csv", colClasses = c("numeric", "character", 
+    "numeric"))
+head(activity)
+\end{verbatim}
+
+Load lattice library for plotting
+
+\begin{verbatim}
+library(lattice)
+\end{verbatim}
+
+Cast dates to year-month-day
+
+\begin{verbatim}
+activity$date <- as.Date(activity$date,"%Y-%m-d%")
+\end{verbatim}
+
+\hypertarget{what-is-mean-total-number-of-steps-taken-per-day}{%
+\subsection{What is mean total number of steps taken per
+day?}\label{what-is-mean-total-number-of-steps-taken-per-day}}
+
+First get the total steps per day using the aggregate function
+
+\begin{verbatim}
+total <- aggregate(steps ~ date,activity,sum,na.rm=TRUE)
+\end{verbatim}
+
+Plot the histogram showing the totals per day
+
+\begin{verbatim}
+hist(total$steps, main = "Total steps by day", xlab = "day")
+\end{verbatim}
+
+The mean is calculated as follows:
+
+\begin{verbatim}
+mean(total$steps)
+\end{verbatim}
+
+The median is calculated as follows:
+
+\begin{verbatim}
+median(total$steps)
+\end{verbatim}
+
+\hypertarget{what-is-the-average-daily-activity-pattern}{%
+\subsection{What is the average daily activity
+pattern?}\label{what-is-the-average-daily-activity-pattern}}
+
+To get the time series, first we will use the following to group the
+data:
+
+\begin{verbatim}
+series <- tapply(activity$steps, activity$interval, mean, na.rm = TRUE)
+\end{verbatim}
+
+Then we plot the plot as shown below:
+
+\begin{verbatim}
+
+plot(row.names(series), series, type = "l", xlab = "5-minute interval", ylab = "average across all the days", main = "Time series plot of the average number of steps taken")
+\end{verbatim}
+
+The 5-minute interval that, on average, contains the maximum number of
+steps:
+
+\begin{verbatim}
+max <- which.max(series)
+names(max)
+\end{verbatim}
+
+\hypertarget{imputing-missing-values}{%
+\subsection{Imputing missing values}\label{imputing-missing-values}}
+
+This section describes the code used to impute the missing values
+
+First, fetch all the missing values:
+
+\begin{verbatim}
+actNA <- sum(is.na(activity))
+\end{verbatim}
+
+The number of missing values are:
+
+\begin{verbatim}
+actNA
+\end{verbatim}
+
+To impute the missing values, we will use the mean:
+
+\begin{verbatim}
+average <- aggregate(steps ~ interval, activity,mean)
+fillNA <- numeric()
+for (i in 1:nrow(activity)) {
+    obs <- activity[i, ]
+    if (is.na(obs$steps)) {
+        steps <- subset(average, interval == obs$interval)$steps
+    } else {
+        steps <- obs$steps
+    }
+    fillNA <- c(fillNA, steps)
+}
+\end{verbatim}
+
+Make a copy of the activity field and fill the missing with the mean:
+
+\begin{verbatim}
+activity_1 <- activity
+activity_1$steps <- fillNA
+\end{verbatim}
+
+Histogram of the total number of steps taken each day after missing
+values are imputed:
+
+\begin{verbatim}
+total_1 <- aggregate(steps ~ date, activity_1, sum, na.rm = TRUE)
+hist(total_1$steps, main = "Total steps by day", xlab = "day")
+\end{verbatim}
+
+\hypertarget{are-there-differences-in-activity-patterns-between-weekdays-and-weekends}{%
+\subsection{Are there differences in activity patterns between weekdays
+and
+weekends?}\label{are-there-differences-in-activity-patterns-between-weekdays-and-weekends}}
+
+We use the weekdays function here:
+
+\begin{verbatim}
+weekday <- weekdays(activity$date)
+day_type <- vector()
+for (i in 1:nrow(activity)) {
+    if (weekday[i] == "Saturday") {
+        day_type[i] <- "Weekend"
+    } else if (weekday[i] == "Sunday") {
+        day_type[i] <- "Weekend"
+    } else {
+        day_type[i] <- "Weekday"
+    }
+}
+\end{verbatim}
+
+Set the day type on the data frame:
+
+\begin{verbatim}
+activity$day_type <- day_type
+activity$day_type <- factor(activity$day_type)
+
+per_day_steps <- aggregate(steps ~ interval + day_type, activity, mean)
+names(per_day_steps) <- c("interval", "day_type", "steps")
+\end{verbatim}
+
+Panel plot comparing the average number of steps taken per 5-minute
+interval across weekdays and weekends:
+
+\begin{verbatim}
+xyplot(steps ~ interval | day_type, per_day_steps, type = "l", layout = c(2, 1),        xlab = "Interval", ylab = "Number of steps")
+\end{verbatim}
+
+\end{document}
